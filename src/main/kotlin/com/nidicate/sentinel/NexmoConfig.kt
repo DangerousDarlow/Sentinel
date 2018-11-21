@@ -7,5 +7,6 @@ import org.springframework.stereotype.Component
 @ConfigurationProperties("nexmo")
 class NexmoConfig {
     lateinit var applicationId: String
-    lateinit var privateKey: String
+    lateinit var apiKey: String
+    lateinit var privateKeyFilePath: String
 }

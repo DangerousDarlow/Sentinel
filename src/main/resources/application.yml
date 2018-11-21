@@ -1,3 +1,4 @@
 nexmo:
-  applicationId: 123
-  privateKey: 456
+  applicationId: uuid
+  apiKey: key
+  privateKeyFilePath: path
