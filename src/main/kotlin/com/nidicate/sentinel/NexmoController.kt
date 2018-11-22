@@ -11,7 +11,7 @@ class NexmoController {
 
     @PostMapping("event")
     fun event(@RequestBody request: Map<String, Any?>) {
-        println(request)
+        println(request["status"])
     }
 
     @PostMapping("answer")
