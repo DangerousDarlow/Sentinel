@@ -1,19 +1,23 @@
 package com.nidicate.sentinel
 
+import com.nexmo.client.NexmoClient
 import com.nexmo.client.incoming.InputEvent
 import com.nexmo.client.voice.ncco.InputAction
 import com.nexmo.client.voice.ncco.Ncco
 import com.nexmo.client.voice.ncco.TalkAction
-import org.springframework.web.bind.annotation.PostMapping
-import org.springframework.web.bind.annotation.RequestBody
-import org.springframework.web.bind.annotation.RequestMapping
-import org.springframework.web.bind.annotation.RestController
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.springframework.web.bind.annotation.*
 import java.time.LocalDateTime
 import javax.servlet.http.HttpServletRequest
 
 @RestController
 @RequestMapping("nexmo")
-class NexmoController {
+class NexmoController(
+        val nexmoClient: NexmoClient,
+        val dodgyRepository: DodgyRepository
+) {
 
     // Controller request mapping value extracted using reflection
     val controllerMapping by lazy { NexmoController::class.java.getAnnotation(RequestMapping::class.java).value[0] }
@@ -22,6 +26,20 @@ class NexmoController {
     fun event(@RequestBody request: Map<String, Any?>) {
         print("event status: ${request["status"]}")
         print("        full: $request")
+
+        val callUuid = request["uuid"] as String
+        if (callUuid != dodgyRepository.callUuid) {
+            return
+        }
+
+        if (request["status"] == "answered") {
+            // Launch Kotlin co-routine
+            GlobalScope.launch {
+                delay(2000)
+                print("Sending DTMF for $callUuid")
+                nexmoClient.voiceClient.sendDtmf(callUuid, "159")
+            }
+        }
     }
 
     @PostMapping("answer")
@@ -30,7 +48,7 @@ class NexmoController {
 
         val talkAction = TalkAction
                 .Builder("Hi. You have called a New Voice Media automated test application. Please hangup.")
-                .loop(0)
+                .loop(3)
                 .bargeIn(true)
                 .build()
 
@@ -38,7 +56,6 @@ class NexmoController {
 
         val inputAction = InputAction.Builder()
                 .eventUrl(dtmfUrl)
-                .submitOnHash(true)
                 .build()
 
         return Ncco(talkAction, inputAction).toJson()
@@ -52,6 +69,16 @@ class NexmoController {
         } else {
             print("Incorrect DTMF")
         }
+    }
+
+    @GetMapping("outbound")
+    fun outbound(): String {
+        val talkAction = TalkAction
+                .Builder("Hi. This is a New Voice Media automated test application. Please hangup.")
+                .loop(3)
+                .build()
+
+        return Ncco(talkAction).toJson()
     }
 
     private fun print(message: String) {
