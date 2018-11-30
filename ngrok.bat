@@ -1,0 +1,1 @@
+ngrok http -region=eu -subdomain=sentinel 8080
